@@ -58,28 +58,18 @@ export default function InventoryApp() {
     file: File
   ): Promise<string> => {
     const formData = new FormData();
-
     formData.append("file", file);
 
-    formData.append(
-      "upload_preset",
-      "inventory_app"
-    );
-
-    const res = await fetch(
-      `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
-      {
-        method: "POST",
-        body: formData,
-      }
-    );
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    });
 
     if (!res.ok) {
       throw new Error("Image upload failed");
     }
 
     const data = await res.json();
-
     return data.secure_url;
   };
 
@@ -88,10 +78,25 @@ export default function InventoryApp() {
   ) => {
     e.preventDefault();
 
+    const priceNum = Number(form.price);
+    const quantityNum = Number(form.quantity);
+
+    if (isNaN(priceNum) || priceNum < 0 || priceNum > 21474836.47) {
+      alert("Price must be a valid number between 0 and 21,474,836.47");
+      return;
+    }
+
+    if (!Number.isInteger(quantityNum) || quantityNum < 0 || quantityNum > 2147483647) {
+      alert("Quantity must be a valid integer between 0 and 2,147,483,647");
+      return;
+    }
+
     try {
       setLoading(true);
 
-      let imageUrl: string | undefined;
+      const isEditing = editingId !== null;
+      const currentItem = isEditing ? items.find((item) => item.id === editingId) : null;
+      let imageUrl: string | undefined = currentItem?.imageUrl || undefined;
 
       if (form.image) {
         imageUrl = await handleImageUpload(
@@ -108,8 +113,6 @@ export default function InventoryApp() {
         ),
         imageUrl,
       };
-
-      const isEditing = editingId !== null;
 
       const endpoint = isEditing
         ? `/api/inventory/${editingId}`
@@ -281,6 +284,7 @@ export default function InventoryApp() {
               placeholder="Quantity"
               required
               min="0"
+              max="2147483647"
               className="border p-3 rounded-lg"
               value={form.quantity}
               onChange={(e) =>
@@ -297,6 +301,7 @@ export default function InventoryApp() {
               placeholder="Price (USD)"
               required
               min="0"
+              max="21474836.47"
               step="0.01"
               className="border p-3 rounded-lg"
               value={form.price}
@@ -346,7 +351,7 @@ export default function InventoryApp() {
                   key={index}
                 />
               ))
-            : items.map((item) => (
+            : items.map((item, index) => (
                 <div
                   key={item.id}
                   className="bg-white rounded-xl shadow overflow-hidden"
@@ -359,6 +364,8 @@ export default function InventoryApp() {
                         }
                         alt={item.name}
                         fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        priority={index < 3}
                         className="object-cover"
                       />
                     </div>

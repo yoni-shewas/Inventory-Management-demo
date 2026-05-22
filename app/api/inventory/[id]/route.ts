@@ -5,15 +5,16 @@ import { eq } from "drizzle-orm";
 
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await req.json();
 
     await db
       .update(inventory)
       .set(body)
-      .where(eq(inventory.id, Number(params.id)));
+      .where(eq(inventory.id, Number(id)));
 
     return NextResponse.json({ success: true });
   } catch {
@@ -26,12 +27,13 @@ export async function PUT(
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     await db
       .delete(inventory)
-      .where(eq(inventory.id, Number(params.id)));
+      .where(eq(inventory.id, Number(id)));
 
     return NextResponse.json({ success: true });
   } catch {
